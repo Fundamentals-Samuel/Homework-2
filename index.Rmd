@@ -1,0 +1,181 @@
+---
+title: An R Markdown document converted from "Samuel_Cavalheiro_Applying_Fun_R.ipynb"
+output: html_document
+---
+
+# Applying functions in R
+
+Installing to read Excel files:
+
+```{r}
+# install.packages('rio')
+library(rio) #this installs the rio library to read the data from FSI
+```
+
+# reading data
+
+```{r}
+# opening a file from a url (file in Excel), name it 'fragility23'
+linkGit="https://github.com/Fundamentals-Samuel/Homework-1/raw/refs/heads/main/FSI-2023-DOWNLOAD.xlsx" #this stores the URL of the excel file in github into linkGit
+
+# library(rio) # package needed
+fragility23=rio::import(file = linkGit) #the resulting linkGit is stored as an object named fragility23 #object that will hold the result
+```
+
+```{r}
+str(fragility23) #this shows the data structure of fragility23 like column names and the data types
+```
+
+## Apply square root function?
+
+```{r}
+# whole DF?
+# sqrt(fragility23) #you cant sqrt root data like names of countries, this is why i assume the function is commented out, we need to specify which column to sqrt
+```
+
+```{r}
+# several columns (only numerical)
+
+sqrt(fragility23[,4:5]) #this applies and calculates the sqrt on columns 4 and 5 on all rows
+```
+
+```{r}
+# one column
+sqrt(fragility23$Total) #this calculates the sqrt in the column specifically titled Total
+```
+
+```{r}
+# one value
+sqrt(fragility23$Total[1]) #the one in brackets applies the sqrt function to one row or value in the Total column
+```
+
+## Applying **sum()**:
+
+```{r}
+# sum everything
+sum(fragility23[,4:5]) #this function sums up all the numeric values in columns 4 and 5, adding up to 12850.1
+```
+
+```{r}
+# sum by column
+print(apply(fragility23[,4:5],2,sum)) #apply is used to run sum separate on both columns, represented by 2, getting us the sum of 4 and then 5, two numbers, 11784.0 and  1066.1 
+```
+
+```{r}
+#notice
+typeof(apply(fragility23[,4:5],2,sum)) #this checks the data type of the last function, which results in double, a numeric data type and it created a vector
+```
+
+If you do not see **list**, then it is a vector. ⏫
+
+```{r}
+# sum by row
+print(apply(fragility23[,4:5],1,sum)) # 1 here is rows so this sums up columns 4 and 5 for each row or each individual country
+```
+
+### Apply by iterating:
+
+```{r}
+print(lapply(fragility23[,4:5],sum)) #Lapply is used to calculate the sum for each column selected, returns a list where each element is each columns result
+```
+
+Notice output of **lapply**:
+
+```{r}
+typeof(lapply(fragility23[,4:5],sum)) #checks the data type of Lapply which is a list
+```
+
+```{r}
+class(lapply(fragility23[,4:5],sum)) #checks the class of lapply, this is how R will identify and work on the object within the function
+```
+
+Notice output of **sapply**:
+
+```{r}
+print(sapply(fragility23[,4:5],sum)) #sapply calculates the sum of each column into numeric datat type rather than list, simplified into a vector
+```
+
+```{r}
+class(sapply(fragility23[,4:5],sum)) #checks the class of sapply, because it is a vector it becomes numeric
+```
+
+Similarly:
+
+```{r}
+print(lapply(fragility23[,4:5],sqrt)) #use lapply to apply sqrt to ever element in columns 4 and 5, returns a list where each element is the square root for that column
+```
+
+```{r}
+class(lapply(fragility23[,4:5],sqrt)) #this checks the class of the object, returns list
+```
+
+```{r}
+print(sapply(fragility23[,4:5],sqrt)) #uses sapply to apply sqrt function to the same columns, but because its numeric means diff data type which is checked in next function
+```
+
+```{r}
+class(sapply(fragility23[,4:5],sqrt)) #checks the class of the object, it is now numeric because of sapply, so R changes it to a matrix or an array
+```
+
+Now our own function:
+
+```{r}
+theOnesOK = function(DF_country_and_variable) #Defines a function called theOnesOK that takes two column data frame as input 
+{ 
+  variable_values<- DF_country_and_variable[,2] # extracts the second column which is numeric and stores it in variable_values
+  avg_value <- mean(variable_values, na.rm = TRUE) #calculates the mean of those values, ignores missing data
+  is_above <- ifelse(variable_values > avg_value, "Above Average", "Below/At Average") #uses iefelse to compare values to average, assigning labels on status of variable
+  DF_country_and_variable$Status <- is_above #adds a new column names Status to the DF with the lables
+  return(DF_country_and_variable)
+}
+  #returns the modified data to the user 
+```
+
+```{r}
+theOnesOK(fragility23[,c('Country','S1: Demographic Pressures')]) #runs the function on the country and demographic pressures columns as the two columns
+```
+
+```{r}
+mystery=function(DF,positionsToUse,CountryColumn='Country'){ #defines mystery to calculate averages for rows in specific columns
+  newDF=DF[,c(CountryColumn),drop = FALSE] #creates a new DF on country column, drop function as false ensures it stays as df rather than simplified to vector
+  average='average' #creates average column as the new column name
+  newDF[,average]=apply(DF[,positionsToUse],1,mean,na.rm = TRUE) #calculates the mean for each row chosen and adds it to the new DF
+  return(newDF[,c(CountryColumn,average)]) #returns the new DF containing only the country name and average
+
+}
+```
+
+```{r}
+mystery(fragility23,4:6) #applies mystery function on frag23 datat on columns 4 and 6
+```
+
+```{r}
+theOnesOK2 = function(DF, DFvariable, CountryColumn='Country') { #defines theOnesOK2 with three parameters: a DF, variable, and country column name
+  variable_values <- DF[,DFvariable]
+  avg_value <- mean(variable_values, na.rm = TRUE) #calculates the mean of those values and ignores missing data
+  is_above <- ifelse(variable_values > avg_value, "Above Average", "Below/At Average") #uses iefelse to compare values to average, assigning labels on status of variable
+  newname = paste('Status_on', DFvariable) #creates a string for the new column name by combining status_on with variable name
+  DF[,newname] <- is_above  #adds labels in is_above as a new column in the original DF
+  return(DF[,c(CountryColumn, newname)]) #creates data frame containing only the country column and the new status column
+}
+# this takes a specific column name and data set, calculates averages, then categorizes either above or below.at average. It returns a table showing a country and its new status. It does this by pulling data using subsetting, then comparing it using '>' and paste function to create the new column name automatically. It differs because 1 only let you analyze two pre subsetted and pre chosen columns with a pre set name (status) and returned the whole DF, while 2 allows us more flexibility by letting us choose which column names to analyze with a more dynamic name and a simplified datat result with only the country name and result.
+```
+
+```{r}
+theOnesOK2(DF = fragility23, DFvariable = 'Total') #this is the code I used to show the result
+```
+
+```{r}
+mistery = function(DF, positionsToUse, CountryColumn='Country'){ #defines mistery function to calculate row averages for specified columns
+  newDF = DF[,c(CountryColumn), drop = FALSE] #creates new DF with only country column, drop makes sure it stays as DF
+  average = 'average' #average to be used as column header
+  newDF[,average] = apply(DF[,positionsToUse], 1, mean, na.rm = TRUE) # applies mean dfunction across rows and the result is then stored in a new column named average in the newDF
+  return(newDF[,c(CountryColumn, average)]) #Return the final data frame showing the Country name and the calculated row average
+  
+# the function calculates the mean of every row by using the apply function with the postion srt at 1 (rows), calculates the mean of a row (each country) and repeats it for every country in the list.  
+}
+```
+
+```{r}
+mistery(DF = fragility23, positionsToUse = 4:6) #function to apply results using data from frag23
+```
